@@ -1,0 +1,5 @@
+name: SleepMultiplier
+main: dev.sleepmultiplier.SleepMultiplier
+version: 1.0.0
+api-version: '1.21'
+description: Speeds up night when players briefly sleep; resets at sunrise.

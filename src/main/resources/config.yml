@@ -1,0 +1,5 @@
+speed:
+  extra-ticks-per-sleeper: 0.5
+
+messages:
+  sleep-registered: "&aSleep registered&7. &fSleepers: &b{sleepers} &7| &fNight speed: &b{speed}"
