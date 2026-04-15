@@ -1,5 +1,37 @@
+# The single world where sleep acceleration applies.
+world:
+  target-name: "world"
+
+  # Keep these unless you intentionally want to redefine the night window.
+  night-start-tick: 12541
+  night-end-tick: 23458
+
 speed:
+  # Legacy-compatible option. If extra-ticks-per-active-sleeper is not present,
+  # this value is used for players who are currently in bed.
   extra-ticks-per-sleeper: 0.5
 
+  # Extra world time advanced each server tick for each player actively in bed.
+  extra-ticks-per-active-sleeper: 0.5
+
+  # Extra world time advanced each server tick for each player who has slept this
+  # night and then left the bed. Set to 0.0 to disable the post-bed bonus.
+  extra-ticks-per-recent-sleeper: 0.0
+
+phantoms:
+  # How many real seconds a player must physically remain in bed during a night
+  # before it counts as actual sleep for phantom prevention.
+  # -1 = disabled, never reset TIME_SINCE_REST
+  #  0 = grant immediately on bed entry
+  # 30 = default behavior requested
+  disable-after-seconds-in-bed: 30
+
 messages:
+  # Available placeholders:
+  # {sleepers}         = active + recent contributors
+  # {active_sleepers}  = players currently in bed
+  # {recent_sleepers}  = players who left bed but still contribute
+  # {speed}            = resulting night speed multiplier
   sleep-registered: "&aSleep registered&7. &fSleepers: &b{sleepers} &7| &fNight speed: &b{speed}"
+  reload-success: "&aSleepMultiplier configuration reloaded."
+  reload-failed: "&cSleepMultiplier configuration reload failed. Check console."
