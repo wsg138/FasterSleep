@@ -131,6 +131,10 @@ public final class SleepService {
         return colorize(config.messages().reloadFailed());
     }
 
+    private String formatPhantomsDisabledMessage() {
+        return colorize(config.messages().phantomsDisabled());
+    }
+
     private NightSummary summarize(World world) {
         int activeSleepers = 0;
         int recentSleepers = 0;
@@ -197,6 +201,11 @@ public final class SleepService {
     private void grantPhantomProtection(Player player, PlayerSleepState state) {
         player.setStatistic(Statistic.TIME_SINCE_REST, 0);
         state.setPhantomProtectionGranted(true);
+
+        String message = formatPhantomsDisabledMessage();
+        if (!message.isEmpty()) {
+            player.sendMessage(message);
+        }
     }
 
     private static String formatSpeed(long contributionMilliTicks) {

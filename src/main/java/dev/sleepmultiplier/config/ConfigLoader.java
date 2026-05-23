@@ -6,6 +6,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 public final class ConfigLoader {
     private static final String DEFAULT_SLEEP_MESSAGE =
             "&aSleep registered&7. &fSleepers: &b{sleepers} &7| &fNight speed: &b{speed}";
+    private static final String DEFAULT_PHANTOMS_DISABLED =
+            "&aPhantom timer reset&7. &fYou are protected from phantoms.";
     private static final String DEFAULT_RELOAD_SUCCESS =
             "&aSleepMultiplier configuration reloaded.";
     private static final String DEFAULT_RELOAD_FAILURE =
@@ -47,6 +49,7 @@ public final class ConfigLoader {
 
         MessageConfig messages = new MessageConfig(
                 config.getString("messages.sleep-registered", DEFAULT_SLEEP_MESSAGE),
+                config.getString("messages.phantoms-disabled", DEFAULT_PHANTOMS_DISABLED),
                 config.getString("messages.reload-success", DEFAULT_RELOAD_SUCCESS),
                 config.getString("messages.reload-failed", DEFAULT_RELOAD_FAILURE)
         );

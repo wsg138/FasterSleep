@@ -33,5 +33,6 @@ messages:
   # {recent_sleepers}  = players who left bed but still contribute
   # {speed}            = resulting night speed multiplier
   sleep-registered: "&aSleep registered&7. &fSleepers: &b{sleepers} &7| &fNight speed: &b{speed}"
+  phantoms-disabled: "&aPhantom timer reset&7. &fYou are protected from phantoms."
   reload-success: "&aSleepMultiplier configuration reloaded."
   reload-failed: "&cSleepMultiplier configuration reload failed. Check console."
