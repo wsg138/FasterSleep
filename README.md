@@ -1,0 +1,2 @@
+# FasterSleep
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/7a06b84a89fb411e903de6034d8e8b79)](https://app.codacy.com/gh/wsg138/FasterSleep?utm_source=github.com&utm_medium=referral&utm_content=wsg138/FasterSleep&utm_campaign=Badge_Grade)
