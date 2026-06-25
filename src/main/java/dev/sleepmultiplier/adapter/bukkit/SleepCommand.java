@@ -10,6 +10,7 @@ import org.bukkit.command.TabCompleter;
 import java.util.List;
 
 public final class SleepCommand implements CommandExecutor, TabCompleter {
+    private static final int RELOAD_ARGUMENT_COUNT = 1;
     private static final List<String> RELOAD_COMPLETIONS = List.of("reload");
 
     private final SleepMultiplier plugin;
@@ -41,7 +42,7 @@ public final class SleepCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) {
+        if (args.length == RELOAD_ARGUMENT_COUNT) {
             return RELOAD_COMPLETIONS;
         }
         return List.of();

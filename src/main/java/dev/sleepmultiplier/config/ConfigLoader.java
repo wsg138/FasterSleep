@@ -4,6 +4,8 @@ import dev.sleepmultiplier.SleepMultiplier;
 import org.bukkit.configuration.file.FileConfiguration;
 
 public final class ConfigLoader {
+    private static final double MINIMUM_SCALED_TICKS = 0.0D;
+
     private static final String DEFAULT_SLEEP_MESSAGE =
             "&aSleep registered&7. &fSleepers: &b{sleepers} &7| &fNight speed: &b{speed}";
     private static final String DEFAULT_PHANTOMS_DISABLED =
@@ -66,10 +68,10 @@ public final class ConfigLoader {
     }
 
     private static String requireText(String input, String path) {
-        if (input == null || input.trim().isEmpty()) {
+        if (input == null || input.isBlank()) {
             throw new IllegalArgumentException("Missing or blank config value at '" + path + "'");
         }
-        return input.trim();
+        return input.strip();
     }
 
     private static int readTick(FileConfiguration config, String path, int defaultValue) {
@@ -82,7 +84,7 @@ public final class ConfigLoader {
 
     private static int readScaledTicks(FileConfiguration config, String path, double defaultValue) {
         double value = config.getDouble(path, defaultValue);
-        if (value < 0.0D) {
+        if (value < MINIMUM_SCALED_TICKS) {
             throw new IllegalArgumentException("Config '" + path + "' cannot be negative.");
         }
 

@@ -1,11 +1,13 @@
 package dev.sleepmultiplier.core;
 
 final class PlayerSleepState {
+    private static final long NO_ACTIVE_SLEEP_START = -1L;
+
     private boolean inBed;
     private boolean recentSleeper;
     private boolean phantomProtectionGranted;
     private long accumulatedSleepingNanos;
-    private long currentSleepStartNanos = -1L;
+    private long currentSleepStartNanos = NO_ACTIVE_SLEEP_START;
 
     public boolean isInBed() {
         return inBed;
@@ -24,20 +26,20 @@ final class PlayerSleepState {
     }
 
     public void startSleeping(long nowNanos) {
-        if (currentSleepStartNanos < 0L) {
+        if (currentSleepStartNanos == NO_ACTIVE_SLEEP_START) {
             currentSleepStartNanos = nowNanos;
         }
     }
 
     public void stopSleeping(long nowNanos) {
-        if (currentSleepStartNanos >= 0L) {
+        if (currentSleepStartNanos != NO_ACTIVE_SLEEP_START) {
             accumulatedSleepingNanos += Math.max(0L, nowNanos - currentSleepStartNanos);
-            currentSleepStartNanos = -1L;
+            currentSleepStartNanos = NO_ACTIVE_SLEEP_START;
         }
     }
 
     public long getTotalSleepingNanos(long nowNanos) {
-        if (currentSleepStartNanos < 0L) {
+        if (currentSleepStartNanos == NO_ACTIVE_SLEEP_START) {
             return accumulatedSleepingNanos;
         }
         return accumulatedSleepingNanos + Math.max(0L, nowNanos - currentSleepStartNanos);

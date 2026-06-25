@@ -34,7 +34,6 @@ public final class SleepMultiplier extends JavaPlugin {
     public void onDisable() {
         if (tickTask != null) {
             tickTask.cancel();
-            tickTask = null;
         }
 
         HandlerList.unregisterAll(this);

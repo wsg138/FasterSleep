@@ -8,17 +8,20 @@ import org.bukkit.Statistic;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class SleepService {
+    private static final long NO_TICKS_TO_ADVANCE = 0L;
+    private static final long NO_FRACTIONAL_TICKS = 0L;
+
     private final Logger logger;
-    private final Map<UUID, PlayerSleepState> trackedPlayers = new HashMap<>();
+    private final Map<UUID, PlayerSleepState> trackedPlayers = new ConcurrentHashMap<>();
 
     private SleepConfig config;
     private boolean wasNight;
@@ -37,7 +40,7 @@ public final class SleepService {
     public void clear() {
         trackedPlayers.clear();
         wasNight = false;
-        fractionalTickAccumulator = 0;
+        fractionalTickAccumulator = NO_FRACTIONAL_TICKS;
     }
 
     public Optional<SleepFeedback> handleBedEnter(Player player) {
@@ -53,7 +56,7 @@ public final class SleepService {
             grantPhantomProtection(player, state);
         }
 
-        return Optional.of(SleepFeedback.fromSummary(summarize(world)));
+        return Optional.of(SleepFeedback.fromSummary(summarize()));
     }
 
     public void handleBedLeave(Player player) {
@@ -75,28 +78,47 @@ public final class SleepService {
     }
 
     public void tick() {
-        World world = Bukkit.getWorld(config.targetWorldName());
+        World world = resolveTargetWorld();
         if (world == null) {
-            if (wasNight || !trackedPlayers.isEmpty()) {
-                logger.warning("Configured sleep world '" + config.targetWorldName() + "' is not loaded. Clearing active sleep state.");
-                clear();
-            }
             return;
         }
 
+        if (!updateNightState(world)) {
+            return;
+        }
+
+        advanceNight(world);
+    }
+
+    private World resolveTargetWorld() {
+        World world = Bukkit.getWorld(config.targetWorldName());
+        if (world != null) {
+            return world;
+        }
+
+        if (wasNight || !trackedPlayers.isEmpty()) {
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning("Configured sleep world '" + config.targetWorldName()
+                        + "' is not loaded. Clearing active sleep state.");
+            }
+            clear();
+        }
+        return null;
+    }
+
+    private boolean updateNightState(World world) {
         boolean isNight = config.isNight(world.getTime());
         if (wasNight && !isNight) {
             clear();
         }
         wasNight = isNight;
+        return isNight;
+    }
 
-        if (!isNight) {
-            return;
-        }
-
+    private void advanceNight(World world) {
         NightSummary summary = summarizeAndUpdate(world);
         if (summary.totalSleepers() <= 0) {
-            fractionalTickAccumulator = 0;
+            fractionalTickAccumulator = NO_FRACTIONAL_TICKS;
             return;
         }
 
@@ -104,7 +126,7 @@ public final class SleepService {
         long ticksToAdvance = fractionalTickAccumulator / SleepConfig.FIXED_POINT_SCALE;
         fractionalTickAccumulator %= SleepConfig.FIXED_POINT_SCALE;
 
-        if (ticksToAdvance > 0L) {
+        if (ticksToAdvance > NO_TICKS_TO_ADVANCE) {
             world.setFullTime(world.getFullTime() + ticksToAdvance);
         }
     }
@@ -135,7 +157,7 @@ public final class SleepService {
         return colorize(config.messages().phantomsDisabled());
     }
 
-    private NightSummary summarize(World world) {
+    private NightSummary summarize() {
         int activeSleepers = 0;
         int recentSleepers = 0;
 
@@ -157,34 +179,16 @@ public final class SleepService {
         int recentSleepers = 0;
         long nowNanos = System.nanoTime();
 
-        Iterator<Map.Entry<UUID, PlayerSleepState>> iterator = trackedPlayers.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<UUID, PlayerSleepState> entry = iterator.next();
+        for (Map.Entry<UUID, PlayerSleepState> entry : trackedPlayers.entrySet()) {
             Player player = Bukkit.getPlayer(entry.getKey());
-            if (player == null || !player.isOnline() || player.isDead() || !world.equals(player.getWorld())) {
-                iterator.remove();
+            if (shouldRemoveTrackedPlayer(player, world)) {
+                trackedPlayers.remove(entry.getKey());
                 continue;
             }
 
             PlayerSleepState state = entry.getValue();
-            boolean sleepingNow = player.isSleeping();
-            if (state.isInBed() && !sleepingNow) {
-                state.setInBed(false);
-                state.stopSleeping(nowNanos);
-            }
-
-            if (sleepingNow) {
-                state.setInBed(true);
-                state.setRecentSleeper(true);
-                state.startSleeping(nowNanos);
+            if (updateSleepingState(player, state, nowNanos)) {
                 activeSleepers++;
-
-                if (!config.phantomResetDisabled() && !state.isPhantomProtectionGranted()) {
-                    long requiredNanos = config.phantomResetThresholdTicks() * 50_000_000L;
-                    if (state.getTotalSleepingNanos(nowNanos) >= requiredNanos) {
-                        grantPhantomProtection(player, state);
-                    }
-                }
                 continue;
             }
 
@@ -196,6 +200,39 @@ public final class SleepService {
         long totalContribution = (long) activeSleepers * config.activeSleepMilliTicks()
                 + (long) recentSleepers * config.recentSleepMilliTicks();
         return new NightSummary(activeSleepers, recentSleepers, activeSleepers + recentSleepers, totalContribution);
+    }
+
+    private boolean shouldRemoveTrackedPlayer(Player player, World world) {
+        return player == null || !player.isOnline() || player.isDead() || !world.equals(player.getWorld());
+    }
+
+    private boolean updateSleepingState(Player player, PlayerSleepState state, long nowNanos) {
+        boolean sleepingNow = player.isSleeping();
+        if (state.isInBed() && !sleepingNow) {
+            state.setInBed(false);
+            state.stopSleeping(nowNanos);
+        }
+
+        if (!sleepingNow) {
+            return false;
+        }
+
+        state.setInBed(true);
+        state.setRecentSleeper(true);
+        state.startSleeping(nowNanos);
+        grantPhantomProtectionIfReady(player, state, nowNanos);
+        return true;
+    }
+
+    private void grantPhantomProtectionIfReady(Player player, PlayerSleepState state, long nowNanos) {
+        if (config.phantomResetDisabled() || state.isPhantomProtectionGranted()) {
+            return;
+        }
+
+        long requiredNanos = config.phantomResetThresholdTicks() * 50_000_000L;
+        if (state.getTotalSleepingNanos(nowNanos) >= requiredNanos) {
+            grantPhantomProtection(player, state);
+        }
     }
 
     private void grantPhantomProtection(Player player, PlayerSleepState state) {
