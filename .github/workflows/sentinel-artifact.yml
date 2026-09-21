@@ -27,7 +27,9 @@ jobs:
         run: mvn --batch-mode --no-transfer-progress clean verify
       - name: Stage stable Sentinel artifact
         run: |
-          cp target/SleepMultiplier-1.2.0.jar plugin.jar
+          mapfile -t jars < <(find target -maxdepth 1 -type f -name 'SleepMultiplier-*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' -print | sort)
+          test "${#jars[@]}" -eq 1
+          cp "${jars[0]}" plugin.jar
           jar tf plugin.jar | grep -Fxq 'plugin.yml'
       - name: Upload Sentinel artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
